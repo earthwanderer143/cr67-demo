@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { Trash2 } from "lucide-react";
 
 interface Todo {
   id: string;
@@ -45,6 +46,13 @@ export default function Home() {
     }
   }
 
+  async function deleteTodo(id: string) {
+    const res = await fetch(`/api/todos/${id}`, { method: "DELETE" });
+    if (res.ok) {
+      setTodos((prev) => prev.filter((t) => t.id !== id));
+    }
+  }
+
   function formatDate(dateStr: string) {
     return new Date(dateStr).toLocaleDateString("en-US", {
       month: "short",
@@ -79,10 +87,24 @@ export default function Home() {
             {todos.map((todo) => (
               <Card key={todo.id}>
                 <CardContent className="flex items-center justify-between py-4">
-                  <span className="font-medium">{todo.title}</span>
-                  <span className="text-sm text-zinc-400">
-                    {formatDate(todo.createdAt)}
-                  </span>
+                  <div className="min-w-0 flex-1">
+                    <span className="font-medium">{todo.title}</span>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm text-zinc-400">
+                      {formatDate(todo.createdAt)}
+                    </span>
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon"
+                      onClick={() => deleteTodo(todo.id)}
+                      aria-label={`Delete todo: ${todo.title}`}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             ))}
