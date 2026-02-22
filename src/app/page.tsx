@@ -31,6 +31,11 @@ export default function Home() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
 
+  const [summaries, setSummaries] = useState<Record<string, string>>({});
+  const [summarizeLoading, setSummarizeLoading] = useState<
+    Record<string, boolean>
+  >({});
+
   useEffect(() => {
     fetchTodos();
   }, []);
@@ -63,6 +68,47 @@ export default function Home() {
     const res = await fetch(`/api/todos/${id}`, { method: "DELETE" });
     if (res.ok) {
       setTodos((prev) => prev.filter((t) => t.id !== id));
+      setSummaries((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+      setSummarizeLoading((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+    }
+  }
+
+  async function summarizeTodo(todo: Todo) {
+    setSummarizeLoading((prev) => ({ ...prev, [todo.id]: true }));
+    try {
+      const res = await fetch("/api/todos/summarize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: todo.title }),
+      });
+
+      if (!res.ok) {
+        const message = await res.text().catch(() => "");
+        throw new Error(message || "Failed to summarize");
+      }
+
+      const data = (await res.json()) as { summary?: string };
+      const summary = (data?.summary ?? "").trim();
+
+      setSummaries((prev) => ({
+        ...prev,
+        [todo.id]: summary || "No summary returned.",
+      }));
+    } catch {
+      setSummaries((prev) => ({
+        ...prev,
+        [todo.id]: "Could not generate summary. Please try again.",
+      }));
+    } finally {
+      setSummarizeLoading((prev) => ({ ...prev, [todo.id]: false }));
     }
   }
 
@@ -152,26 +198,45 @@ export default function Home() {
           <div className="space-y-3">
             {filteredTodos.map((todo) => (
               <Card key={todo.id}>
-                <CardContent className="flex items-center justify-between gap-3 py-4">
-                  <div className="flex items-center gap-2 min-w-0 flex-1">
-                    <span className="font-medium truncate">{todo.title}</span>
-                    {getPriorityBadge(todo.priority)}
+                <CardContent className="py-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                      <span className="font-medium truncate">{todo.title}</span>
+                      {getPriorityBadge(todo.priority)}
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => summarizeTodo(todo)}
+                        disabled={!!summarizeLoading[todo.id]}
+                      >
+                        {summarizeLoading[todo.id] ? "Summarizing..." : "Summarize"}
+                      </Button>
+
+                      <span className="text-sm text-zinc-400">
+                        {formatDate(todo.createdAt)}
+                      </span>
+
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="icon"
+                        onClick={() => deleteTodo(todo.id)}
+                        aria-label="Delete todo"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
 
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span className="text-sm text-zinc-400">
-                      {formatDate(todo.createdAt)}
-                    </span>
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      size="icon"
-                      onClick={() => deleteTodo(todo.id)}
-                      aria-label="Delete todo"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
+                  {summaries[todo.id] ? (
+                    <p className="mt-2 text-sm text-zinc-600">
+                      {summaries[todo.id]}
+                    </p>
+                  ) : null}
                 </CardContent>
               </Card>
             ))}
