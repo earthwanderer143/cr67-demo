@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 
 interface Todo {
   id: string;
@@ -16,6 +16,7 @@ interface Todo {
 export default function Home() {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [newTodo, setNewTodo] = useState("");
+  const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -53,6 +54,10 @@ export default function Home() {
     });
   }
 
+  const filteredTodos = todos.filter((todo) =>
+    todo.title.toLowerCase().includes(search.trim().toLowerCase())
+  );
+
   return (
     <div className="min-h-screen bg-zinc-50 py-12 px-4">
       <div className="max-w-xl mx-auto">
@@ -68,15 +73,25 @@ export default function Home() {
           <Button type="submit">Add</Button>
         </form>
 
+        <div className="mb-4">
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search todos..."
+          />
+        </div>
+
         {loading ? (
           <p className="text-center text-zinc-500">Loading...</p>
         ) : todos.length === 0 ? (
           <p className="text-center text-zinc-500">
             No todos yet. Add one above!
           </p>
+        ) : filteredTodos.length === 0 ? (
+          <p className="text-center text-zinc-500">No matching todos</p>
         ) : (
           <div className="space-y-3">
-            {todos.map((todo) => (
+            {filteredTodos.map((todo) => (
               <Card key={todo.id}>
                 <CardContent className="flex items-center justify-between py-4">
                   <span className="font-medium">{todo.title}</span>
