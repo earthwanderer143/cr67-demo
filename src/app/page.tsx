@@ -1,21 +1,32 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+type Priority = "LOW" | "MEDIUM" | "HIGH";
 
 interface Todo {
   id: string;
   title: string;
   completed: boolean;
-  priority: string;
+  priority?: string | null;
   createdAt: string;
 }
 
 export default function Home() {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [newTodo, setNewTodo] = useState("");
+  const [newPriority, setNewPriority] = useState<Priority>("MEDIUM");
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
 
@@ -37,11 +48,12 @@ export default function Home() {
     const res = await fetch("/api/todos", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title: newTodo }),
+      body: JSON.stringify({ title: newTodo, priority: newPriority }),
     });
 
     if (res.ok) {
       setNewTodo("");
+      setNewPriority("MEDIUM");
       fetchTodos();
     }
   }
@@ -54,9 +66,33 @@ export default function Home() {
     });
   }
 
-  const filteredTodos = todos.filter((todo) =>
-    todo.title.toLowerCase().includes(search.trim().toLowerCase())
+  const filteredTodos = useMemo(
+    () =>
+      todos.filter((todo) =>
+        todo.title.toLowerCase().includes(search.trim().toLowerCase())
+      ),
+    [todos, search]
   );
+
+  function getPriorityBadge(priority?: string | null) {
+    if (!priority) return null;
+
+    const p = priority.toUpperCase();
+    if (p !== "LOW" && p !== "MEDIUM" && p !== "HIGH") return null;
+
+    const className =
+      p === "LOW"
+        ? "bg-green-100 text-green-800 border-green-200"
+        : p === "MEDIUM"
+        ? "bg-yellow-100 text-yellow-900 border-yellow-200"
+        : "bg-red-100 text-red-800 border-red-200";
+
+    return (
+      <Badge variant="outline" className={`h-5 px-2 text-xs ${className}`}>
+        {p}
+      </Badge>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-zinc-50 py-12 px-4">
@@ -70,6 +106,21 @@ export default function Home() {
             placeholder="What needs to be done?"
             className="flex-1"
           />
+
+          <Select
+            value={newPriority}
+            onValueChange={(v) => setNewPriority(v as Priority)}
+          >
+            <SelectTrigger className="w-[140px]">
+              <SelectValue placeholder="Priority" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="LOW">LOW</SelectItem>
+              <SelectItem value="MEDIUM">MEDIUM</SelectItem>
+              <SelectItem value="HIGH">HIGH</SelectItem>
+            </SelectContent>
+          </Select>
+
           <Button type="submit">Add</Button>
         </form>
 
@@ -94,7 +145,10 @@ export default function Home() {
             {filteredTodos.map((todo) => (
               <Card key={todo.id}>
                 <CardContent className="flex items-center justify-between py-4">
-                  <span className="font-medium">{todo.title}</span>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="font-medium truncate">{todo.title}</span>
+                    {getPriorityBadge(todo.priority)}
+                  </div>
                   <span className="text-sm text-zinc-400">
                     {formatDate(todo.createdAt)}
                   </span>
