@@ -9,14 +9,21 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const { title } = await req.json();
+  const body = await req.json();
+  const title = body?.title;
+  const rawPriority = body?.priority;
 
   if (!title || !title.trim()) {
     return NextResponse.json({ error: "Title is required" }, { status: 400 });
   }
 
+  const priority =
+    rawPriority === "LOW" || rawPriority === "MEDIUM" || rawPriority === "HIGH"
+      ? rawPriority
+      : undefined;
+
   const todo = await prisma.todo.create({
-    data: { title: title.trim() },
+    data: { title: title.trim(), priority },
   });
 
   return NextResponse.json(todo);
