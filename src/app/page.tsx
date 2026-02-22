@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Trash2 } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -55,6 +56,13 @@ export default function Home() {
       setNewTodo("");
       setNewPriority("MEDIUM");
       fetchTodos();
+    }
+  }
+
+  async function deleteTodo(id: string) {
+    const res = await fetch(`/api/todos/${id}`, { method: "DELETE" });
+    if (res.ok) {
+      setTodos((prev) => prev.filter((t) => t.id !== id));
     }
   }
 
@@ -144,14 +152,26 @@ export default function Home() {
           <div className="space-y-3">
             {filteredTodos.map((todo) => (
               <Card key={todo.id}>
-                <CardContent className="flex items-center justify-between py-4">
-                  <div className="flex items-center gap-2 min-w-0">
+                <CardContent className="flex items-center justify-between gap-3 py-4">
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
                     <span className="font-medium truncate">{todo.title}</span>
                     {getPriorityBadge(todo.priority)}
                   </div>
-                  <span className="text-sm text-zinc-400">
-                    {formatDate(todo.createdAt)}
-                  </span>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-sm text-zinc-400">
+                      {formatDate(todo.createdAt)}
+                    </span>
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon"
+                      onClick={() => deleteTodo(todo.id)}
+                      aria-label="Delete todo"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             ))}
